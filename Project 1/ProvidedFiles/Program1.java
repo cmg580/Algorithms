@@ -1,6 +1,6 @@
 /*
- * Name: Christian Gil
- * EID: cmg4463
+ * Name: <your name>
+ * EID: <your EID>
  */
 
 import java.util.ArrayList;
