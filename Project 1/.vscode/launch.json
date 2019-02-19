@@ -6,21 +6,17 @@
     "configurations": [
         {
             "type": "java",
-            "name": "Debug (Launch) - Current File",
+            "name": "BruteForce",
             "request": "launch",
-            "mainClass": "${file}"
+            "mainClass": "Driver",
+            "args": "java Driver -b ProvidedInputs/small/4-8-5.in",
         },
         {
             "type": "java",
-            "name": "Debug (Launch)-CreditCard",
+            "name": "GaleSharpley",
             "request": "launch",
-            "mainClass": "CreditCard"
-        },
-        {
-            "type": "java",
-            "name": "Debug (Launch)-Driver",
-            "request": "launch",
-            "mainClass": "Driver"
+            "mainClass": "Driver",
+            "args": "java Driver -g ProvidedInputs/small/4-8-5.in",
         }
     ]
 }
