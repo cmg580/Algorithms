@@ -42,7 +42,7 @@ public class Program1 extends AbstractProgram1 {
     public boolean allJobsFilled(Matching allocation)
     {
         ArrayList<Integer> current_matches = allocation.getUserMatching();
-        int [] servers_filled = new int[current_matches.size()];
+        int [] servers_filled = new int[ allocation.getServerCount() ];
 
         // Get the number of users on each server
         for (int user = 0; user < current_matches.size(); user++)
@@ -50,19 +50,18 @@ public class Program1 extends AbstractProgram1 {
             int server = current_matches.get(user);
             if (server != -1)
             {
-                servers_filled[user] += server;
+                servers_filled[server] += 1;
             }
         }
 
         // Check that the number of slots is filled
-        int [] server_num = new int[allocation.totalServerSlots()];
         ArrayList<Integer> server_slots = allocation.getServerSlots();
-        int [] server_slot_list = server_slots.toArray();
+        int [] server_slot_list = new int[ server_slots.size() ];
 
         // Subtract the number of users on each server from the number of slots
         for (int i = 0; i < server_slot_list.length; i++)
         {
-            server_slot_list[i] = server_slot_list[i] - servers_filled[i];
+            server_slot_list[i] = server_slots.get(i) - servers_filled[i];
             // If too many users are on one server, then this is unstable
             if (server_slot_list[i] < 0){
                 return false;
@@ -70,7 +69,21 @@ public class Program1 extends AbstractProgram1 {
             // TODO : Continue more checks?
         }
 
-        return true;
+        // Determine if all the slots are filled
+        int sum = 0;
+        for (int i = 0; i < server_slot_list.length; i++){
+            sum += server_slot_list[i];
+        }
+
+        if (sum != 0)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+
     }
 
 
