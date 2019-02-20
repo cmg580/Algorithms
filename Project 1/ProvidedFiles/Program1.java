@@ -66,7 +66,6 @@ public class Program1 extends AbstractProgram1 {
             if (server_slot_list[i] < 0){
                 return false;
             }
-            // TODO : Continue more checks?
         }
 
         // Determine if all the slots are filled
@@ -181,7 +180,103 @@ public class Program1 extends AbstractProgram1 {
      * @return A stable Matching.
      */
     public Matching stableMarriageGaleShapley(Matching allocation) {
-        /* TODO implement this function */
-        return null; /* TODO remove this line */
+        // Initially all servers S are free and no user U is assigned a server.
+        ArrayList<ArrayList<Integer>> user_pref = allocation.getUserPreference();
+        ArrayList<Integer> potential_matches = new ArrayList<Integer>( allocation.getUserCount() );
+
+        ArrayList<Integer> server_slots = new ArrayList<Integer>( allocation.getServerSlots().size() );
+        // Create a deepclone of the allocation.getServerSlots() object
+        for (Integer i : allocation.getServerSlots() ){
+            server_slots.add( i );
+        }
+
+        ArrayList<ArrayList<Integer>> server_pref = new ArrayList<ArrayList<Integer>>( allocation.getServerPreference().size() );
+        // Create a deepclone of the allocation.getServerPreference() object
+        for (ArrayList<Integer> i : allocation.getServerPreference() ){
+            ArrayList<Integer> dummy = new ArrayList<Integer> ( i.size() );
+            for (Integer j : i )
+            {
+                dummy.add( j );
+            }
+            server_pref.add( dummy );
+        }
+
+        // Set all the potential matches as unmatches
+        for (int i = 0; i < allocation.getUserCount(); i++)
+        {
+            potential_matches.add(-1);
+        }
+
+        int current_server = 0;
+        // While there are servers S with slots s that are free.
+        while ( allocation.totalServerSlots() > 0 ) 
+        {
+            // Choose a server S with free slots
+            if ( server_slots.get( current_server ) == 0 )
+            {
+                current_server += 1;
+                // If we ran out of servers, we are done
+                if ( current_server >= server_pref.size() ) 
+                { 
+                    current_server = 0; 
+                }
+                // Create a deepclone of the allocation.getServerSlots() object
+                server_slots = new ArrayList<Integer>( allocation.getServerSlots().size() );
+                for (Integer i : allocation.getServerSlots() ){
+                    server_slots.add( i );
+                }
+
+                server_pref = new ArrayList<ArrayList<Integer>>( allocation.getServerPreference().size() );
+                // Create a deepclone of the allocation.getServerPreference() object
+                for (ArrayList<Integer> i : allocation.getServerPreference() ){
+                    ArrayList<Integer> dummy = new ArrayList<Integer> ( i.size() );
+                    for (Integer j : i )
+                    {
+                        dummy.add( j );
+                    }
+                    server_pref.add( dummy );
+                }
+            }
+
+            // Let F be the highest-ranked user in S’s preference list to whom F is unassigned
+            ArrayList<Integer> fav_list = server_pref.get( current_server );
+            int f = fav_list.get( 0 );
+            // If F is free then
+            if ( potential_matches.get(f) == -1 )
+            {
+                // (F, S) link together
+                potential_matches.set(f, current_server);
+                server_slots.set ( current_server, server_slots.get( current_server ) - 1);
+                server_pref.get( current_server ).remove(0);
+            }
+            // // Else F is already assigned to server S’
+            else
+            {
+                // If F prefers S’ to S then
+                ArrayList<Integer> user_fav_list = user_pref.get(f);
+                int pos_of_S = user_fav_list.indexOf( current_server );
+                int pos_of_Sprime = user_fav_list.indexOf( potential_matches.get(f) );
+                if (pos_of_Sprime < pos_of_S)
+                {
+                    // F remains free
+                    continue;
+                }
+                // Else F prefers S to S’
+                else
+                {
+                    // S’ becomes free
+                    server_slots.set ( potential_matches.get(f), server_slots.get( potential_matches.get(f) ) + 1);
+                    // (F,S) link together
+                    potential_matches.set(f, current_server);
+                    server_slots.set ( current_server, server_slots.get( current_server ) - 1);
+                    server_pref.get( current_server ).remove(0);
+
+                }
+            }
+        }
+
+        // Since we have all the stable matches, set the allocation to know that
+        allocation.setUserMatching( potential_matches );
+        return allocation;
     }
 }
