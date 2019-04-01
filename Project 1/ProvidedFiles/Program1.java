@@ -181,25 +181,17 @@ public class Program1 extends AbstractProgram1 {
      */
     public Matching stableMarriageGaleShapley(Matching allocation) {
         // Initially all servers S are free and no user U is assigned a server.
+        ArrayList<ArrayList<Integer>> server_pref = allocation.getServerPreference();
         ArrayList<ArrayList<Integer>> user_pref = allocation.getUserPreference();
+        ArrayList<Integer> server_slots = new ArrayList<Integer>( allocation.getServerSlots().size() );
         ArrayList<Integer> potential_matches = new ArrayList<Integer>( allocation.getUserCount() );
 
-        ArrayList<Integer> server_slots = new ArrayList<Integer>( allocation.getServerSlots().size() );
         // Create a deepclone of the allocation.getServerSlots() object
         for (Integer i : allocation.getServerSlots() ){
             server_slots.add( i );
         }
 
-        ArrayList<ArrayList<Integer>> server_pref = new ArrayList<ArrayList<Integer>>( allocation.getServerPreference().size() );
-        // Create a deepclone of the allocation.getServerPreference() object
-        for (ArrayList<Integer> i : allocation.getServerPreference() ){
-            ArrayList<Integer> dummy = new ArrayList<Integer> ( i.size() );
-            for (Integer j : i )
-            {
-                dummy.add( j );
-            }
-            server_pref.add( dummy );
-        }
+
 
         // Set all the potential matches as unmatches
         for (int i = 0; i < allocation.getUserCount(); i++)
@@ -216,25 +208,9 @@ public class Program1 extends AbstractProgram1 {
             {
                 current_server += 1;
                 // If we ran out of servers, we are done
-                if ( current_server >= server_pref.size() ) 
+                if ( current_server >= allocation.getServerCount() ) 
                 { 
                     current_server = 0; 
-                }
-                // Create a deepclone of the allocation.getServerSlots() object
-                server_slots = new ArrayList<Integer>( allocation.getServerSlots().size() );
-                for (Integer i : allocation.getServerSlots() ){
-                    server_slots.add( i );
-                }
-
-                server_pref = new ArrayList<ArrayList<Integer>>( allocation.getServerPreference().size() );
-                // Create a deepclone of the allocation.getServerPreference() object
-                for (ArrayList<Integer> i : allocation.getServerPreference() ){
-                    ArrayList<Integer> dummy = new ArrayList<Integer> ( i.size() );
-                    for (Integer j : i )
-                    {
-                        dummy.add( j );
-                    }
-                    server_pref.add( dummy );
                 }
             }
 
@@ -264,13 +240,12 @@ public class Program1 extends AbstractProgram1 {
                 // Else F prefers S to S’
                 else
                 {
-                    // S’ becomes free
-                    server_slots.set ( potential_matches.get(f), server_slots.get( potential_matches.get(f) ) + 1);
                     // (F,S) link together
                     potential_matches.set(f, current_server);
                     server_slots.set ( current_server, server_slots.get( current_server ) - 1);
                     server_pref.get( current_server ).remove(0);
-
+                    // S’ becomes free
+                    server_slots.set ( potential_matches.get(f), server_slots.get( potential_matches.get(f) ) + 1);
                 }
             }
         }
