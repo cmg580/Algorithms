@@ -12,9 +12,11 @@
         },
         {
             "type": "java",
-            "name": "Debug (Launch)-TestRunner",
+            "name": "TestRunner",
             "request": "launch",
-            "mainClass": "TestRunner"
+            "mainClass": "TestRunner",
+            "args": "java TestRunner",
+            "vmArgs": "--enable-preview"
         }
     ]
 }
