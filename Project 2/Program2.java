@@ -5,15 +5,6 @@
 public class Program2 {
 
     public int constructIntensityGraph(int[][] image){
-        // // Get the adjacency matrix
-        // int[][] adjMatrix = constructAdjMatrix(image);
-
-        // // Get the sum of bottom half of the adjacency matrix
-        // int sum = sumAdjacencyMatrix(adjMatrix);
-
-        // return sum;
-        // Create the edge graph
-
         int[][] leftEdges = new int[image.length][image[0].length];
         int[][] bottomEdges = new int[image.length][image[0].length];
         
@@ -44,11 +35,12 @@ public class Program2 {
         return sum;
     }
 
-    boolean done = true;
     public int constructPrunedGraph(int[][] image){
+        // Initalize constants
         int columnSize = image.length;
         int rowSize = image[0].length;
         int totalSize = columnSize * rowSize;
+
         // Create an array to hold the MST
         int[] mst = new int [totalSize];
         // Create an array to hold key values
@@ -61,8 +53,8 @@ public class Program2 {
             keys[i] = Integer.MAX_VALUE;
             isInMST[i] = false;
         }
-
         int currentNode = 0;
+        
         // While the length of the min spanning tree is does not contain all the vertexes
         for (int nul = 0; nul < isInMST.length; nul++){
             // Pick a vertex that is not in the mst and has a min key value
