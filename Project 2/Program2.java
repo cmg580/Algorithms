@@ -54,19 +54,24 @@ public class Program2 {
             isInMST[i] = false;
         }
         int currentNode = 0;
-        
+        int[] mstWeights = new int[totalSize];
+
         // While the length of the min spanning tree is does not contain all the vertexes
         for (int nul = 0; nul < isInMST.length; nul++){
-            // Pick a vertex that is not in the mst and has a min key value
+            int minValue = Integer.MAX_VALUE;
+            // Pick a vertex that is not in the mst and has the min key value
             for (int i = 0; i < totalSize; i++){
-                if ((!isInMST[i]) && (keys[i] != Integer.MAX_VALUE)){
+                if ((!isInMST[i]) && (minValue > keys[i])){
                     currentNode = i;
-                    break;
+                    minValue = keys[i];
                 }
             }
 
             // Add the vertex to the mst
             isInMST[currentNode] = true;
+
+            // Save the min value
+            mstWeights[nul] = minValue;
 
             //// Determine the neighbors
             int [] bottomNeighbor = {-1, -1}; int bottomWeight = -1;
@@ -112,15 +117,15 @@ public class Program2 {
                     if (weightArray[i] < keys[keysPosition]){
                         // Update the key value to the lower key
                         keys[keysPosition] = weightArray[i];
-                        mst[keysPosition] = currentNode;
                     }
                 }  
             }
+            mst[nul] = currentNode;
         }
         // Sum all the keys
         int sum = 0;
         for (int i = 0; i < keys.length; i++){
-            sum += keys[i];
+            sum += mstWeights[i];
         }
 
         return sum;
