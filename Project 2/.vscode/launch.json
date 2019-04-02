@@ -15,8 +15,7 @@
             "name": "TestRunner",
             "request": "launch",
             "mainClass": "TestRunner",
-            "args": "java TestRunner",
-            "vmArgs": "--enable-preview"
+            "vmArgs": "--enable-preview",
         }
     ]
 }
