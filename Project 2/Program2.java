@@ -59,7 +59,7 @@ public class Program2 {
         // While the length of the min spanning tree is does not contain all the vertexes
         for (int nul = 0; nul < isInMST.length; nul++){
             int minValue = Integer.MAX_VALUE;
-            // Pick a vertex that is not in the mst and has the min key value
+            // Pick a vertex that is not in the mst and has the minimum key value
             for (int i = 0; i < totalSize; i++){
                 if ((!isInMST[i]) && (minValue > keys[i])){
                     currentNode = i;
@@ -69,7 +69,6 @@ public class Program2 {
 
             // Add the vertex to the mst
             isInMST[currentNode] = true;
-
             // Save the min value
             mstWeights[nul] = minValue;
 
@@ -122,9 +121,9 @@ public class Program2 {
             }
             mst[nul] = currentNode;
         }
-        // Sum all the keys
+        // Sum all the mstWeights
         int sum = 0;
-        for (int i = 0; i < keys.length; i++){
+        for (int i = 0; i < mstWeights.length; i++){
             sum += mstWeights[i];
         }
 
