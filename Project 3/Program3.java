@@ -56,9 +56,13 @@ public class Program3 {
         // 2. S <- Empty
         ArrayList<Integer> shortest_path_nodes = new ArrayList<Integer>();
         ArrayList<Integer> shortest_path_values = new ArrayList<Integer>();
+        ArrayList<Planet> shortest_path_planets = new ArrayList<Planet>();
 
         // 3. Q <- G.V
         MinHeap Q = G;
+
+        // Save the destination planet object when we reach it
+        Planet destinationPlanet = new Planet();
 
         // 4. while Q != Empty
         while (Q.size() != 0){
@@ -67,22 +71,50 @@ public class Program3 {
             // 6.     S <- S U {u}
             shortest_path_nodes.add(u.planet);
             shortest_path_values.add(u.distance);
+            shortest_path_planets.add(u);
+
             if (u.planet == end){
+                destinationPlanet = u;
                 break;
             }
             // 7.     for each vertex v within Adj[u]
             for (int i = 0; i < connections[u.planet].length; i++){
                 // w is the weight from u to v
                 int w = connections[u.planet][i].getTime();
+                // f is the fuel from u to v
+                int f = connections[u.planet][i].getFuel();
                 // get the destination planet reachable from the current planet
                 int destination = connections[u.planet][i].getDestination();
-                // 8.       do relax(u, v, w)
-                relax(Q, u, destination, w);
+                // if we have already traversed the planet, dont go back
+                if ( !shortest_path_nodes.contains( destination ) ){
+                    // 8.       do relax(u, v, w)
+                    relax(Q, u, destination, w, f);
+                }
             }
         }
 
-        // Get the length of the path
-        return shortest_path_values.get( shortest_path_values.size() - 1 );
+        // If the destinationPlanet is the default, then Thanos cannot physically reach that planet
+        boolean noFuel = destinationPlanet.fuel == -1;
+        boolean noTime = destinationPlanet.time == -1;
+        boolean noPathParent = destinationPlanet.pathParent == null;
+        if (noFuel && noTime && noPathParent){
+            return -1;
+        }
+
+        // Recursively get the parents, summing the time
+        int timeSum = 0;
+        while (true){
+            try{
+                Planet parentPlanet = destinationPlanet.pathParent;
+                timeSum += destinationPlanet.time;
+                destinationPlanet = parentPlanet;
+            }
+            catch (Exception e){
+                break;
+            }
+        }
+        
+        return timeSum;
      }
 
     // Create Initialization step
@@ -101,14 +133,14 @@ public class Program3 {
             // The starting planet takes 0 minues to travel to
             if (s == i){
                 // 4. s.d <- 0   
-                current = new Planet(i, -1, 0);
+                current = new Planet(i, -1, 0, 0, 0);
             }
             else{
                 // 2.  do v.d <- inf
                 int distance = Integer.MAX_VALUE;
                 // 3.    v.pi <- NIL
                 int parent = -1;
-                current = new Planet(i, parent, distance);
+                current = new Planet(i, parent, distance, -1, -1);
             }
             // Create the Min-Heap
             minheap.createNode(current);
@@ -119,19 +151,21 @@ public class Program3 {
 
 
     // Create Relaxation step
-    public void relax(MinHeap minheap, Planet u, int destination, int w){
-        Planet destinationPlanet = minheap.getPlanet(destination); // THIS STEP WILL FAIL IF NO CONNECTION FROM 0 TO THIS PLANET
+    public void relax(MinHeap minheap, Planet u, int destination, int w, int f){
+        Planet destinationPlanet = minheap.getPlanet(destination); // Get the Planet object that is our destination
         // if v.d > u.d + w(u,v)
-        if (destinationPlanet.distance > (u.distance + w)){
+        if (destinationPlanet.distance > (u.distance + w + f)){
+            // set the time and fuel to get to the planet
+            destinationPlanet.fuel = u.fuel + f;
+            destinationPlanet.time = u.time + w;
             //   then v.d <- u.d + w(u,v)
-            destinationPlanet.distance = (u.distance + w);
+            destinationPlanet.distance = (u.distance + destinationPlanet.fuel + destinationPlanet.time);
             //     v.pi <- u
             destinationPlanet.pathParent = u;
+
         }
-        // Reorganize the heap
-        if (minheap.size() != 0) {
-            minheap.HeapifyUp( minheap.getIndexOfPlanet( destinationPlanet ) );
-        }
+        // Regorganize the min heap with the new updated values
+        minheap.update(destinationPlanet);
     }
     
     // // Create Extract-Min(Q)
@@ -171,22 +205,23 @@ class Planet{
     public int parent;
     public int distance;
     public Planet pathParent;
+    public int time;
+    public int fuel;
 
     Planet(){
         this.planet = -1;
         this.parent = -1;
         this.distance = -1;
+        this.time = -1;
+        this.fuel = -1;
     }
 
-    public Planet(int planet, int parent, int distance){
+    public Planet(int planet, int parent, int distance, int time, int fuel){
         this.planet = planet;
         this.parent = parent;
         this.distance = distance;
-    }
-
-    // Overriding the compare method to sort the age 
-    public int compare(Planet P, Planet P1) {
-        return P.planet - P1.planet;
+        this.time = time;
+        this.fuel = fuel;
     }
 }
 
@@ -199,15 +234,78 @@ class MinHeap{
     public MinHeap(){
         this.node = new ArrayList<Planet>();
     }
+    // quick function to get parent
+    private int getParent(int i){
+        return (i / 2);
+    }
+    // function to get Left
+    private int left(int i){
+        return (2*i);
+    }
+    // function to get right
+    private int right(int i){
+        return ( (2*i) + 1 );
+    }
+    // function to determine if we are on a leaf
+    private boolean leaf(int i){
+        int heapSize = this.node.size();
+        if ((i >= (heapSize / 2)) && (i <= heapSize)){
+            return true;
+        }
+        return false;
+    }
+    // function to do a swap
+    private void swap(int firstPostition, int secondPosition){
+        Planet temp = this.node.get(firstPostition);
+        this.node.set( firstPostition, this.node.get(secondPosition) );
+        this.node.set( secondPosition, temp);
+    }
+
+    // Function that maintains the heap
+    private void heapify(int i){
+        if (!leaf(i)){
+            int lDist = this.node.get(left(i)).distance;
+            int rDist = this.node.get(right(i)).distance;
+            int iDist = this.node.get(i).distance;
+            // If any of the children have a smaller distance than the parent
+            if ( (lDist < iDist) || (rDist < iDist) ) {
+                // Move up the left child if it is smaller than the right child
+                if (lDist < rDist){
+                    swap(i, left(i));
+                    heapify(left(i));
+                }
+
+                // Move up right right child if it is smaller or equal top the left child
+                else{
+                    swap(i, right(i));
+                    heapify(right(i));
+                }
+            }
+        }
+    }
 
     // Create a node and insert it into the heap
     public void createNode(Planet P){
         if (this.node.size() != 0){
             this.node.add(P);
-            HeapifyUp(this.node.size() - 1);
+            int currPlanetIndex = size() - 1;
+            while( this.node.get( currPlanetIndex ).distance < this.node.get( getParent(currPlanetIndex) ).distance ){
+                swap(currPlanetIndex, getParent(currPlanetIndex));
+                currPlanetIndex = getParent( currPlanetIndex );
+            }
         }
         else{
             this.node.add(P);
+        }
+    }
+
+    // Create a function that will 'update' the heap
+    public void update(Planet P){
+        // Move everything around
+        int currPlanetIndex = getIndexOfPlanet(P);
+        while( this.node.get( currPlanetIndex ).distance < this.node.get( getParent(currPlanetIndex) ).distance ){
+            swap(currPlanetIndex, getParent(currPlanetIndex));
+            currPlanetIndex = getParent( currPlanetIndex );
         }
     }
 
@@ -215,73 +313,9 @@ class MinHeap{
     public Planet getMin(){
         Planet P = this.node.remove(0);
         if (this.node.size() > 1){
-            HeapifyDown(0);
+            heapify(0);
         }
         return P;
-    }
-
-    // Heapify-up (H. i):
-    public void HeapifyUp(int i){
-        // If i > 1 then
-        if (i > 0){
-            // let j = parent(i) = [i/2]
-            this.node.get(i).parent = i / 2;
-            int j = i / 2;
-            // If key[H[i]] < key[H[j]] then
-            if (this.node.get(i).distance < this.node.get(j).distance){
-                // swap the array entries H[i] and H[j]
-                Planet temp = this.node.get(i);
-                this.node.set(i, this.node.get(j));
-                this.node.set(j, temp);
-                // HeapifyUp(H, j)
-                HeapifyUp(j);
-            }
-        }
-    }
-
-    // Heapify-down(H,i):
-    public void HeapifyDown(int i){
-        // Let n = length(H)
-        int n = this.node.size();
-        // persist j
-        int j = -1;
-        // If 2i > n then
-        if (2*i > n){
-            // Terminate with H unchanged
-            return;
-        }
-        // Else if 2i < n then
-        else if (2*i < n){
-            // Let left = 2i and right = 2i + 1
-            int left = 2*i;
-            int right = 2*i + 1;
-            // Let j be the index that minimizes key[H[left]] and key[H[right]]
-            int leftValue = this.node.get(left).distance;
-            int rightValue = this.node.get(right).distance;
-            if (leftValue < rightValue){
-                j = left;
-            }
-            else if (rightValue < leftValue){
-                j = right;
-            }
-            else{
-                j = right;
-            }
-        }
-        // Else if 2i = n then
-        else if (2*i == n){
-            j = 2*i;
-        }
-        // If key[H[j]] < key[H[i]] then
-        if (this.node.get(j).distance < this.node.get(i).distance){
-            // swap the array entreis H[i] and H[j]
-            Planet temp = this.node.get(j);
-            this.node.set(j, this.node.get(i)); 
-            this.node.set(i, temp);
-            // Heapify-down(H, j)
-            HeapifyDown(j);
-        }
-
     }
 
     // getter for the size of the array
@@ -291,13 +325,7 @@ class MinHeap{
 
     // Search the list and return the planet
     public Planet getPlanet(int i){
-        // // Clone the Array
-        // List<Planet> nodes = (ArrayList<Planet>)this.node.clone();
-        // // Sort the nodes
-        // Arrays.sort(nodes, new Planet());
-        // // Use binary search to find the planet
-        // Arrays.binarySearch(nodes, i, new Planet());
-        
+        // Use a basic loop to get the desired planet
         for (int j = 0; j < this.node.size(); j++){
             if (this.node.get(j).planet == i){
                 return this.node.get(j);
