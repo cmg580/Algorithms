@@ -16,7 +16,7 @@
             "name": "Debug (Launch)-Driver",
             "request": "launch",
             "mainClass": "Driver",
-            "args": "-1 small_inputs/p1/9.in"
+            "args": "-1 small_inputs/p1/12.in"
         }
     ]
 }

@@ -48,6 +48,81 @@ public class Program3 {
         int end = planetScenario.getEndPlanet();
         int totalFuel = planetScenario.getTotalFuel();
 
+        // Prune the graph to remove any connections we cant reach at all
+        pruneConnections( planetScenario.getAllFlights() );
+
+        // Use Dijestras - Optimize for time -- if that fails, the optimize for fuel
+        Planet destinationPlanet = dijestra(start, end, "time");
+        boolean noFuel = destinationPlanet.fuel == -1;
+        boolean noTime = destinationPlanet.time == -1;
+        boolean noPathParent = destinationPlanet.pathParent == null;
+        // If we couldn't get an answer when optimizing for time, optimize for fuel
+        if (noFuel && noTime && noPathParent){
+            destinationPlanet = dijestra(start, end, "fuel");
+        }
+
+        // If the destinationPlanet is the default, then Thanos cannot physically reach that planet
+        noFuel = destinationPlanet.fuel == -1;
+        noTime = destinationPlanet.time == -1;
+        noPathParent = destinationPlanet.pathParent == null;
+        if (noFuel && noTime && noPathParent){
+            return -1;
+        }
+
+        // Get the time and fuel from the starting planet
+        int time = sumTimeToPlanet( destinationPlanet );
+        int fuel = sumFuelToPlanet( destinationPlanet );
+
+        return time;
+     }
+
+     
+     
+     
+     /*
+     * This method returns an integer that is the maximum possible damage that can be dealt
+     * given a certain amount of time.
+     */
+    //TODO: Complete this function
+    public int computeDamage() {
+        
+        int totalTime = calculator.getTotalTime();
+        int numAttacks = calculator.getNumAttacks();
+        return 0;
+    }
+    
+    /*                      *
+    *                       *
+    *                       *
+    * EXTRA CLASSES SECTION *
+    *                       *
+    *                       *
+    */
+
+    // Delete any edges from one planet to another that is greater than the fuel Thanos has
+    public void pruneConnections(SpaceFlight[][] G){
+        // All fuel Thanos has
+        int fuel = planetScenario.getTotalFuel();
+        // For each starting planet
+        for (int i = 0; i < G.length; i++){
+            SpaceFlight[] currentPlanet = G[i];
+            ArrayList<SpaceFlight> cleanedPlanetPaths = new ArrayList<SpaceFlight>();
+            // For each planet reachable by the current planet
+            for (int j = 0; j < currentPlanet.length; j++){
+                int fuelToPlanet = currentPlanet[j].getFuel();
+                // If the fuel to that planet is not more than the fuel we have
+                if (fuelToPlanet <= fuel){
+                    cleanedPlanetPaths.add(G[i][j]);
+                }
+            }
+            G[i] = cleanedPlanetPaths.toArray(new SpaceFlight[0]);
+        }
+    }
+
+    // Create Dijestra's algo
+    public Planet dijestra(int start, int end, String S){
+        // Get all the fuel we have
+        int totalFuel = planetScenario.getTotalFuel();
         // Use Dijestra's algo to find shortest path (time) from start to end
         SpaceFlight[][] connections = planetScenario.getAllFlights();
         // 1. initialize_single_source(G, s)
@@ -68,9 +143,16 @@ public class Program3 {
         while (Q.size() != 0){
             // 5.   do u <- Extract-Min(Q) // If the min edge is reached, we are done
             Planet u = Q.getMin();
+
+            // Check that taking this planet wont use all our fuel
+            int fuelUsed = sumFuelToPlanet( u );
+            if (fuelUsed > totalFuel){
+                // If getting to the planet takes more fuel than we have, the path we have taken is wrong.
+                break;
+            }
             // 6.     S <- S U {u}
             shortest_path_nodes.add(u.planet);
-            shortest_path_values.add(u.distance);
+            shortest_path_values.add(u.weight);
             shortest_path_planets.add(u);
 
             if (u.planet == end){
@@ -88,34 +170,31 @@ public class Program3 {
                 // if we have already traversed the planet, dont go back
                 if ( !shortest_path_nodes.contains( destination ) ){
                     // 8.       do relax(u, v, w)
-                    relax(Q, u, destination, w, f);
+                    if (S.equals("time")){
+                        relaxTime(Q, u, destination, w, f);
+                    }
+                    else if (S.equals("fuel")){
+                        relaxFuel(Q, u, destination, w, f);
+                    }
+                    else{
+                        relaxFuelTime(Q, u, destination, w, f);
+                    }
                 }
             }
         }
 
-        // If the destinationPlanet is the default, then Thanos cannot physically reach that planet
-        boolean noFuel = destinationPlanet.fuel == -1;
-        boolean noTime = destinationPlanet.time == -1;
-        boolean noPathParent = destinationPlanet.pathParent == null;
-        if (noFuel && noTime && noPathParent){
-            return -1;
-        }
+        return destinationPlanet;
+    }
+    
+    // Recursively Traverse Planets and return the sum of the time
+    public int sumTimeToPlanet(Planet P){
+        return P.time;
+    }
 
-        // Recursively get the parents, summing the time
-        int timeSum = 0;
-        while (true){
-            try{
-                Planet parentPlanet = destinationPlanet.pathParent;
-                timeSum += destinationPlanet.time;
-                destinationPlanet = parentPlanet;
-            }
-            catch (Exception e){
-                break;
-            }
+    // Recursively Traverse Planets and return the sum of the fuel
+    public int sumFuelToPlanet(Planet P){
+        return P.fuel;
         }
-        
-        return timeSum;
-     }
 
     // Create Initialization step
     public MinHeap initialize_single_source(SpaceFlight[][] G, int s){
@@ -137,10 +216,10 @@ public class Program3 {
             }
             else{
                 // 2.  do v.d <- inf
-                int distance = Integer.MAX_VALUE;
+                int weight = Integer.MAX_VALUE;
                 // 3.    v.pi <- NIL
                 int parent = -1;
-                current = new Planet(i, parent, distance, -1, -1);
+                current = new Planet(i, parent, weight, -1, -1);
             }
             // Create the Min-Heap
             minheap.createNode(current);
@@ -149,17 +228,16 @@ public class Program3 {
         return minheap;
     }
 
-
     // Create Relaxation step
     public void relax(MinHeap minheap, Planet u, int destination, int w, int f){
         Planet destinationPlanet = minheap.getPlanet(destination); // Get the Planet object that is our destination
         // if v.d > u.d + w(u,v)
-        if (destinationPlanet.distance > (u.distance + w + f)){
-            // set the time and fuel to get to the planet
+        if (destinationPlanet.weight > (u.weight + w + f)){
+            // set the time and fuel to get to the planet from our origional starting planet
             destinationPlanet.fuel = u.fuel + f;
             destinationPlanet.time = u.time + w;
             //   then v.d <- u.d + w(u,v)
-            destinationPlanet.distance = (u.distance + destinationPlanet.fuel + destinationPlanet.time);
+            destinationPlanet.weight = (u.weight + destinationPlanet.fuel + destinationPlanet.time);
             //     v.pi <- u
             destinationPlanet.pathParent = u;
 
@@ -167,43 +245,66 @@ public class Program3 {
         // Regorganize the min heap with the new updated values
         minheap.update(destinationPlanet);
     }
-    
-    // // Create Extract-Min(Q)
-    // public void extract_min(Q){
 
-    // }
-    
-    // // Function to create Min-Heap 
-    // public void create_min_heap( nodes, edges ){
+    // Create Relaxation step
+    public void relaxFuelTime(MinHeap minheap, Planet u, int destination, int w, int f){
+        Planet destinationPlanet = minheap.getPlanet(destination); // Get the Planet object that is our destination
+        // if v.d > u.d + w(u,v)
+        if ((destinationPlanet.weight > (u.weight + w)) && ( (u.fuel + f) < planetScenario.getTotalFuel()) ){
+            // set the time and fuel to get to the planet from our origional starting planet
+            destinationPlanet.fuel = u.fuel + f;
+            destinationPlanet.time = u.time + w;
+            //   then v.d <- u.d + w(u,v)
+            destinationPlanet.weight = (u.weight + destinationPlanet.time);
+            //     v.pi <- u
+            destinationPlanet.pathParent = u;
 
-    // }
-
-    /*
-     * This method returns an integer that is the maximum possible damage that can be dealt
-     * given a certain amount of time.
-     */
-    //TODO: Complete this function
-    public int computeDamage() {
-
-        int totalTime = calculator.getTotalTime();
-        int numAttacks = calculator.getNumAttacks();
-        return 0;
+        }
+        // Regorganize the min heap with the new updated values
+        minheap.update(destinationPlanet);
     }
 
-    /*                      *
-    *                       *
-    *                       *
-    * EXTRA CLASSES SECTION *
-    *                       *
-    *                       *
-    */
+    // Create Relaxation step
+    public void relaxTime(MinHeap minheap, Planet u, int destination, int w, int f){
+        Planet destinationPlanet = minheap.getPlanet(destination); // Get the Planet object that is our destination
+        // if v.d > u.d + w(u,v)
+        if (destinationPlanet.weight > (u.weight + w)){
+            // set the time and fuel to get to the planet from our origional starting planet
+            destinationPlanet.fuel = u.fuel + f;
+            destinationPlanet.time = u.time + w;
+            //   then v.d <- u.d + w(u,v)
+            destinationPlanet.weight = (u.weight + destinationPlanet.time);
+            //     v.pi <- u
+            destinationPlanet.pathParent = u;
 
+        }
+        // Regorganize the min heap with the new updated values
+        minheap.update(destinationPlanet);
+    }
+
+    // Create Relaxation step
+    public void relaxFuel(MinHeap minheap, Planet u, int destination, int w, int f){
+        Planet destinationPlanet = minheap.getPlanet(destination); // Get the Planet object that is our destination
+        // if v.d > u.d + w(u,v)
+        if (destinationPlanet.weight > (u.weight + f)){
+            // set the time and fuel to get to the planet from our origional starting planet
+            destinationPlanet.fuel = u.fuel + f;
+            destinationPlanet.time = u.time + w;
+            //   then v.d <- u.d + w(u,v)
+            destinationPlanet.weight = (u.weight + destinationPlanet.fuel);
+            //     v.pi <- u
+            destinationPlanet.pathParent = u;
+
+        }
+        // Regorganize the min heap with the new updated values
+        minheap.update(destinationPlanet);
+    }
 }
 // This is the class we will use to create the min heap
 class Planet{
     public int planet;
     public int parent;
-    public int distance;
+    public int weight;
     public Planet pathParent;
     public int time;
     public int fuel;
@@ -211,15 +312,15 @@ class Planet{
     Planet(){
         this.planet = -1;
         this.parent = -1;
-        this.distance = -1;
+        this.weight = -1;
         this.time = -1;
         this.fuel = -1;
     }
 
-    public Planet(int planet, int parent, int distance, int time, int fuel){
+    public Planet(int planet, int parent, int weight, int time, int fuel){
         this.planet = planet;
         this.parent = parent;
-        this.distance = distance;
+        this.weight = weight;
         this.time = time;
         this.fuel = fuel;
     }
@@ -234,18 +335,22 @@ class MinHeap{
     public MinHeap(){
         this.node = new ArrayList<Planet>();
     }
+
     // quick function to get parent
     private int getParent(int i){
         return (i / 2);
     }
+
     // function to get Left
     private int left(int i){
         return (2*i);
     }
+
     // function to get right
     private int right(int i){
         return ( (2*i) + 1 );
     }
+
     // function to determine if we are on a leaf
     private boolean leaf(int i){
         int heapSize = this.node.size();
@@ -254,6 +359,7 @@ class MinHeap{
         }
         return false;
     }
+
     // function to do a swap
     private void swap(int firstPostition, int secondPosition){
         Planet temp = this.node.get(firstPostition);
@@ -264,10 +370,10 @@ class MinHeap{
     // Function that maintains the heap
     private void heapify(int i){
         if (!leaf(i)){
-            int lDist = this.node.get(left(i)).distance;
-            int rDist = this.node.get(right(i)).distance;
-            int iDist = this.node.get(i).distance;
-            // If any of the children have a smaller distance than the parent
+            int lDist = this.node.get(left(i)).weight;
+            int rDist = this.node.get(right(i)).weight;
+            int iDist = this.node.get(i).weight;
+            // If any of the children have a smaller weight than the parent
             if ( (lDist < iDist) || (rDist < iDist) ) {
                 // Move up the left child if it is smaller than the right child
                 if (lDist < rDist){
@@ -289,7 +395,7 @@ class MinHeap{
         if (this.node.size() != 0){
             this.node.add(P);
             int currPlanetIndex = size() - 1;
-            while( this.node.get( currPlanetIndex ).distance < this.node.get( getParent(currPlanetIndex) ).distance ){
+            while( this.node.get( currPlanetIndex ).weight < this.node.get( getParent(currPlanetIndex) ).weight ){
                 swap(currPlanetIndex, getParent(currPlanetIndex));
                 currPlanetIndex = getParent( currPlanetIndex );
             }
@@ -303,7 +409,7 @@ class MinHeap{
     public void update(Planet P){
         // Move everything around
         int currPlanetIndex = getIndexOfPlanet(P);
-        while( this.node.get( currPlanetIndex ).distance < this.node.get( getParent(currPlanetIndex) ).distance ){
+        while( this.node.get( currPlanetIndex ).weight < this.node.get( getParent(currPlanetIndex) ).weight ){
             swap(currPlanetIndex, getParent(currPlanetIndex));
             currPlanetIndex = getParent( currPlanetIndex );
         }
