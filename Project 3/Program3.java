@@ -49,12 +49,17 @@ public class Program3 {
         // cleanConnections(connections);
 
         // This problem is very similiar to the knapsack problem
-        
+
+
+        int bestTime = Integer.MAX_VALUE;
+        int bestFuel = Integer.MAX_VALUE;
         // Start slowly incrementing the total fuel
         for (int i = 0; i <= totalFuel; i++){
             // Since we know the starting planet, we know which row to get first
             SpaceFlight[] G = connections[start];
-            ArrayList<SpaceFlight[]> alreadyExplored = new ArrayList<SpaceFlight[]>();
+            int[] alreadyExplored = new int[connections.length];
+            alreadyExplored = initalizeArray(alreadyExplored);
+            alreadyExplored[0] = start;
             int fuel = i;
             int time_consumed = 0;
             int fuel_consumed = 0;
@@ -65,13 +70,18 @@ public class Program3 {
             fuel_consumed = results[1];
 
             // If they both do not equal -1, then we have found a cheap way to the planet!
-            if ((time_consumed != -1) && (fuel_consumed != -1)){
-                return time_consumed;
+            if ((time_consumed != -1) && (fuel_consumed != -1) && (time_consumed < bestTime)){
+                bestTime = time_consumed;
+                bestFuel = fuel_consumed;
             }
         }
-
-        // Since we could not reach the desired planet with all of the fuel, we return -1
-        return -1;
+        if ((bestTime != Integer.MAX_VALUE) && (bestFuel != Integer.MAX_VALUE)){
+            return bestTime;
+        }
+        else{
+            // Since we could not reach the desired planet with all of the fuel, we return -1
+            return -1;
+        }
      }
 
     /*
@@ -104,7 +114,7 @@ public class Program3 {
     }
 
     // Recursive Funciton to go down and see what values we can reach
-    public int[] rabbitHole(SpaceFlight[] G, ArrayList<SpaceFlight[]> alreadyExplored, int fuel, int time_consumed, int fuel_consumed){
+    public int[] rabbitHole(SpaceFlight[] G, int[] alreadyExplored, int fuel, int time_consumed, int fuel_consumed){
         // Get the desired landing planet
         int end = planetScenario.getEndPlanet();
         // If we have reached our desired planet, go ahead and return
@@ -119,11 +129,13 @@ public class Program3 {
         for (int i = 0; i < G.length; i++){
             // If the fuel it takes to get to the planet is less than the fuel we have and we havent visited the planet before
             SpaceFlight currentPlanet = G[i];
-            if ( (currentPlanet.getFuel() <= fuel) && ( !alreadyExplored.contains(G) ) ){
+            if ( (currentPlanet.getFuel() <= fuel) && ( !isIn(alreadyExplored, currentPlanet.getDestination()) ) ){
                 // Mark the planet as explored
-                alreadyExplored.add(G);
+                add(alreadyExplored, currentPlanet.getDestination());
                 // Then check the rest of the planets
-                int[] result = rabbitHole( connections[currentPlanet.getDestination()], alreadyExplored, fuel - currentPlanet.getFuel(), time_consumed + currentPlanet.getTime(), fuel_consumed + currentPlanet.getFuel());
+                int[] result = rabbitHole( connections[currentPlanet.getDestination()], copy(alreadyExplored), fuel - currentPlanet.getFuel(), time_consumed + currentPlanet.getTime(), fuel_consumed + currentPlanet.getFuel());
+                // Remove the planet so that the next one can go into
+                remove(alreadyExplored, currentPlanet.getDestination());
                 results.add(result);
             }
         }
@@ -137,7 +149,7 @@ public class Program3 {
                 fuel_consumed = results.get(i)[1];
                 boolean badTime = (time_consumed == -1);
                 boolean badFuel = (fuel_consumed == -1);
-                if ((!badTime && !badFuel) && (time_consumed < bestResult[0]) && (fuel_consumed < bestResult[1])){
+                if ((!badTime && !badFuel) && (time_consumed < bestResult[0])){
                     bestResult[0] = time_consumed;
                     bestResult[1] = fuel_consumed;
                 }
@@ -153,5 +165,49 @@ public class Program3 {
         // If there is not enough fuel to get to the desired planet, return -1 for everything
         int[] badReturn = {-1, -1};
         return badReturn;
+    }
+
+    // Function to add item to end of list
+    public void add(int[] array, int num){
+        for (int i = 0; i < array.length; i++){
+            // If there is no number at the area
+            if( array[i] == -1 ){
+                array[i] = num;
+            }
+        }
+    }
+    // Function to remove the item from a list
+    public void remove(int[] array, int num){
+        for (int i = 0; i < array.length; i++){
+            // If there is no number at the area
+            if( array[i] == num ){
+                array[i] = -1;
+            }
+        }
+    }
+    // Function to check if a number exists in a list
+    public boolean isIn(int[] array, int num){
+        for (int i = 0; i < array.length; i++){
+            // If there is no number at the area
+            if( array[i] == num ){
+                return true;
+            }
+        }
+        return false;
+    }
+    // Function to turn all the planets to -1
+    public int[] initalizeArray(int[] array){
+        for (int i = 0; i < array.length; i++){
+            array[i] = -1;
+        }
+        return array;
+    }
+    // Function to create anther array
+    public int[] copy(int[] array){
+        int[] newArray = new int[array.length];
+        for (int i = 0; i < array.length; i++){
+            newArray[i] = array[i];
+        }
+        return newArray;
     }
 }
