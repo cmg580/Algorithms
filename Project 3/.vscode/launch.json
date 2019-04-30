@@ -13,10 +13,17 @@
         },
         {
             "type": "java",
-            "name": "Debug (Launch)-Driver",
+            "name": "Part 1",
             "request": "launch",
             "mainClass": "Driver",
             "args": "-1 small_inputs/p1/9.in"
+        },
+        {
+            "type": "java",
+            "name": "Part 2",
+            "request": "launch",
+            "mainClass": "Driver",
+            "args": "-2 small_inputs/p2/4.in"
         }
     ]
 }

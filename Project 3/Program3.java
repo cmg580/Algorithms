@@ -45,9 +45,6 @@ public class Program3 {
         int totalFuel = planetScenario.getTotalFuel();
         SpaceFlight[][] connections = planetScenario.getAllFlights();
 
-        // If the flight to a planet takes more fuel than we have, we cannot go to that planet
-        // cleanConnections(connections);
-
         // This problem is very similiar to the knapsack problem
 
 
@@ -93,27 +90,91 @@ public class Program3 {
 
         int totalTime = calculator.getTotalTime();
         int numAttacks = calculator.getNumAttacks();
-        return 0;
+
+        // Table to hold the possible damage given attack times
+        int[][] attackDamage = new int[numAttacks+1][totalTime+1];
+
+        // To compute the ideal solution, we will start with Opt(0,h) in which we have zero attacks for all time
+        int [] result = {-1, -1};
+        for (int j = 0; j < totalTime; j++){
+            result = maxDamageAttackInTime(0, j);
+            attackDamage[0][j] = result[0];
+        }
+
+        // We will then calculate Opt(i, 0) which is all attacks for zero time
+        for (int i = 0; i < numAttacks; i++){
+            result = maxDamageAttackInTime(i, 0);
+            attackDamage[i][0] = result[0];
+        }
+
+        int maxDamage = 0;
+        int k = 0;
+        int opt = 0;
+
+        // Starting with Opt(1, 1), fill in the values row major
+        for (int i = 1; i <= numAttacks; i++){
+            for (int h = 1; h <= totalTime; h++){
+                // max 0≤k≤h fi(k)
+                int[] maxResult = maxDamageAttackInTime(i, h);
+                maxDamage = maxResult[0];
+                k = maxResult[1];
+                // Opt(i − 1, h − k)
+                opt = attackDamage[i-1][h - k];
+
+                // Opt(i, t) = max 0≤k≤h fi(k) + Opt(i − 1, h − k)
+                attackDamage[i][h] = maxDamage + opt;
+            }
+        }
+        
+        return attackDamage[numAttacks][totalTime];
     }
 
-    // Function to remove any edges greater than the fuel we have
-    public void cleanConnections(SpaceFlight[][] G){
-        // Get the total amount of fuel Thanos has
-        int totalFuel = planetScenario.getTotalFuel();
+    // Create a function to take in the seconds spent(t) and the number of attacks(i) and return the sum
+    // max 0≤k≤h fi(k)
+    public int[] maxDamageAttackInTime(int numAttacks, int time){
+        int maxDamage = 0;
+        int maxTime = 0;
+        int damage = 0;
 
-        // Go through and clean the connections
-        for (int i = 0; i < G.length; i++){
-            ArrayList<SpaceFlight> rowOfPlanets = new ArrayList<SpaceFlight>();
-            for (int j = 0; j < G[i].length; j++){
-                if (G[i][j].getFuel() < totalFuel){
-                    rowOfPlanets.add(G[i][j]);
+        // For all attacks
+        for (int i = 0; i < numAttacks; i++){
+            if (time != 0){
+                // 0 ≤ k ≤ h
+                for (int k = 0; k <= time; k++){
+                    // fi(k)
+                    damage = calculator.calculateDamage(i, k);
+                    // max
+                    if (damage > maxDamage){
+                        maxDamage = damage;
+                        maxTime = k;
+                    }
                 }
             }
-            G[i] = rowOfPlanets.toArray(new SpaceFlight[0]);
+            // Just because we have zero time does not necessarily mean it will cause zero damage
+            else{
+                // fi(k)
+                damage = calculator.calculateDamage(i, time);
+                // max
+                if (damage > maxDamage){
+                    maxDamage = damage;
+                    maxTime = time;
+                }
+            }
         }
+        // // For all the attacks
+        // for (int i = 0; i < numAttacks; i++){
+        //     attackValue = calculator.calculateDamage(i, time);
+        //     if (attackValue > maxAttack){
+        //         maxAttack = attackValue;
+        //     }
+        // } 
+
+        // max 0≤k≤h fi(k)
+        int[] result = {maxDamage, maxTime};
+        return result;
     }
 
-    // Recursive Funciton to go down and see what values we can reach
+    // Fastest Route - Recursive Funciton to go down and see what values we can reach
     public int[] rabbitHole(SpaceFlight[] G, int[] alreadyExplored, int fuel, int time_consumed, int fuel_consumed){
         // Get the desired landing planet
         int end = planetScenario.getEndPlanet();
