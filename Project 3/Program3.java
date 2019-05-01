@@ -92,82 +92,84 @@ public class Program3 {
         int numAttacks = calculator.getNumAttacks();
 
         // Table to hold the possible damage given attack times
-        int[][] attackDamage = new int[numAttacks+1][totalTime+1];
+        int[][] finalSolution = new int[numAttacks+1][totalTime+1];
 
         // To compute the ideal solution, we will start with Opt(0,h) in which we have zero attacks for all time
-        int [] result = {-1, -1};
         for (int j = 0; j < totalTime; j++){
-            result = maxDamageAttackInTime(0, j);
-            attackDamage[0][j] = result[0];
+            finalSolution[0][j] = 0;     // If we have no attacks, we can inflict no damage
         }
 
         // We will then calculate Opt(i, 0) which is all attacks for zero time
+        int summed = 0;
+        int time = 0;
         for (int i = 0; i < numAttacks; i++){
-            result = maxDamageAttackInTime(i, 0);
-            attackDamage[i][0] = result[0];
+            if (i != 0){
+                summed = calculator.calculateDamage(i, time);
+            }
+            finalSolution[i][0] = summed;
         }
 
         int maxDamage = 0;
+        int maxAttack = -1;
         int k = 0;
         int opt = 0;
 
         // Starting with Opt(1, 1), fill in the values row major
         for (int i = 1; i <= numAttacks; i++){
             for (int h = 1; h <= totalTime; h++){
-                // max 0≤k≤h fi(k)
-                int[] maxResult = maxDamageAttackInTime(i, h);
+                // max 0≤k≤h ( fi(k) + Opt(i − 1, h − k) )
+                int[] maxResult = maxDamageAttackInTime(i, h, finalSolution, h);
                 maxDamage = maxResult[0];
                 k = maxResult[1];
-                // Opt(i − 1, h − k)
-                opt = attackDamage[i-1][h - k];
 
                 // Opt(i, t) = max 0≤k≤h fi(k) + Opt(i − 1, h − k)
-                attackDamage[i][h] = maxDamage + opt;
+                finalSolution[i][h] = maxDamage + opt;
             }
         }
         
-        return attackDamage[numAttacks][totalTime];
+        return finalSolution[numAttacks][totalTime];
     }
 
     // Create a function to take in the seconds spent(t) and the number of attacks(i) and return the sum
     // max 0≤k≤h fi(k)
-    public int[] maxDamageAttackInTime(int numAttacks, int time){
+    public int[] maxDamageAttackInTime(int numAttacks, int time, int[][] finalSolution, int h){
         int maxDamage = 0;
         int maxTime = 0;
         int damage = 0;
+        int opt = 0;
 
         // For all attacks
-        for (int i = 0; i < numAttacks; i++){
-            if (time != 0){
-                // 0 ≤ k ≤ h
-                for (int k = 0; k <= time; k++){
-                    // fi(k)
-                    damage = calculator.calculateDamage(i, k);
-                    // max
-                    if (damage > maxDamage){
-                        maxDamage = damage;
-                        maxTime = k;
-                    }
-                }
-            }
-            // Just because we have zero time does not necessarily mean it will cause zero damage
-            else{
+        if (time != 0){
+            // 0 ≤ k ≤ h
+            for (int k = 0; k <= time; k++){
                 // fi(k)
-                damage = calculator.calculateDamage(i, time);
+                damage = calculator.calculateDamage(numAttacks-1, k);
+                // Opt(i − 1, h − k)
+                opt = finalSolution[numAttacks-1][h - k];
+                // fi(k) + Opt(i − 1, h − k)
+                damage += opt;
+
                 // max
-                if (damage > maxDamage){
+                if (damage >= maxDamage){
                     maxDamage = damage;
-                    maxTime = time;
+                    maxTime = k;
                 }
             }
         }
-        // // For all the attacks
-        // for (int i = 0; i < numAttacks; i++){
-        //     attackValue = calculator.calculateDamage(i, time);
-        //     if (attackValue > maxAttack){
-        //         maxAttack = attackValue;
-        //     }
-        // } 
+        // Just because we have zero time does not necessarily mean it will cause zero damage
+        else{
+            // fi(k)
+            damage = calculator.calculateDamage(numAttacks-1, time);
+            // Opt(i − 1, h − k)
+            opt = finalSolution[numAttacks-1][0];
+            // fi(k) + Opt(i − 1, h − k)
+            damage += opt;
+            // max
+            if (damage > maxDamage){
+                maxDamage = damage;
+                maxTime = time;
+            }
+        }
 
         // max 0≤k≤h fi(k)
         int[] result = {maxDamage, maxTime};
