@@ -45,9 +45,6 @@ public class Program3 {
         int totalFuel = planetScenario.getTotalFuel();
         SpaceFlight[][] connections = planetScenario.getAllFlights();
 
-        // This problem is very similiar to the knapsack problem
-
-
         int bestTime = Integer.MAX_VALUE;
         int bestFuel = Integer.MAX_VALUE;
         // Start slowly incrementing the total fuel
@@ -113,6 +110,9 @@ public class Program3 {
         int maxAttack = -1;
         int k = 0;
         int opt = 0;
+
+
+        // This problem is very similiar to the 0/1 knapsack problem
 
         // Starting with Opt(1, 1), fill in the values row major
         for (int i = 1; i <= numAttacks; i++){
