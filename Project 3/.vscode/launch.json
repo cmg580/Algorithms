@@ -23,7 +23,7 @@
             "name": "Part 2",
             "request": "launch",
             "mainClass": "Driver",
-            "args": "-2 small_inputs/p2/4.in"
+            "args": "-2 large_inputs/p2/1024.in"
         }
     ]
 }

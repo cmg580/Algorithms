@@ -1,6 +1,0 @@
-/*
- * Name: Christian Gil
- * EID: cmg4463
- * Project 3: Dynamic Programming
- * Spring 2018, Dr. SantaCruz
- */
